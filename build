@@ -1,0 +1,45 @@
+#!/bin/bash
+DEFCONFIG="imx_v1_hb_defconfig"
+DTB_VAR="imx6q-var-dart.dtb"
+DTB_SCM="imx6dqscm-1gb-qwks-rev3-fix-ldo.dtb"
+IMG_VAR="uImage"
+IMG_SCM="zImage"
+
+source /opt/hb-imx-fb/2.4.1/environment-setup-cortexa9hf-neon-fsl-linux-gnueabi
+echo "Exported compilation toolchain"
+arm-fsl-linux-gnueabi-gcc -v
+if [ $# -gt 0 ];then
+  if [ "$1" = "clean" ];then
+    make clean
+    rm -rvf $DTB_VAR $DTB_SCM $IMG_VAR $IMG_SCM
+  elif [ "$1" = "menuconfig" ];then
+    make menuconfig
+  elif [ "$1" = "configure" ]; then
+    make mrproper
+    make ARCH=arm $DEFCONFIG
+  elif [ "$1" = "scm" ];then
+    make -j8 LOADADDR=0x10008000 $IMG_SCM
+    make -j8 LOADADDR=0x10008000 modules
+    make -j8 $DTB_SCM
+    cp -v arch/arm/boot/$IMG_SCM .
+    cp -v arch/arm/boot/dts/$DTB_SCM .
+  elif [ "$1" = "var" ];then
+    make -j8 LOADADDR=0x10008000 $IMG_VAR
+    make -j8 LOADADDR=0x10008000 modules
+    make -j8 $DTB_VAR
+    cp -v arch/arm/boot/$IMG_VAR .
+    cp -v arch/arm/boot/dts/$DTB_VAR .
+  elif [ "$1" = "scmdtb" ];then
+    make clean
+    rm -rvf $DTB_VAR $DTB_SCM $IMG_VAR $IMG_SCM
+    make -j8 $DTB_SCM
+    cp -v arch/arm/boot/dts/$DTB_SCM .
+  fi
+else 
+  echo
+  echo "##### Error in usage #####"
+  echo "./build clean     - to clean"
+  echo "./build configure - to configure linux kernel"
+  echo "./build scm       - to build for scm"
+  echo "./build var       - to build for var"
+fi
